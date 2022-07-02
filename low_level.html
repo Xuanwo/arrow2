@@ -75,7 +75,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="index.html"><strong aria-hidden="true">1.</strong> Arrow2</a></li><li class="chapter-item expanded "><a href="arrow.html"><strong aria-hidden="true">2.</strong> The arrow format</a></li><li class="chapter-item expanded "><a href="low_level.html" class="active"><strong aria-hidden="true">3.</strong> Low-level API</a></li><li class="chapter-item expanded "><a href="high_level.html"><strong aria-hidden="true">4.</strong> High-level API</a></li><li class="chapter-item expanded "><a href="compute.html"><strong aria-hidden="true">5.</strong> Compute</a></li><li class="chapter-item expanded "><a href="metadata.html"><strong aria-hidden="true">6.</strong> Metadata</a></li><li class="chapter-item expanded "><a href="ffi.html"><strong aria-hidden="true">7.</strong> Foreign interfaces</a></li><li class="chapter-item expanded "><a href="extension.html"><strong aria-hidden="true">8.</strong> Extension</a></li><li class="chapter-item expanded "><a href="io/index.html"><strong aria-hidden="true">9.</strong> IO</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="io/csv_reader.html"><strong aria-hidden="true">9.1.</strong> Read CSV</a></li><li class="chapter-item expanded "><a href="io/csv_write.html"><strong aria-hidden="true">9.2.</strong> Write CSV</a></li><li class="chapter-item expanded "><a href="io/parquet_read.html"><strong aria-hidden="true">9.3.</strong> Read Parquet</a></li><li class="chapter-item expanded "><a href="io/parquet_write.html"><strong aria-hidden="true">9.4.</strong> Write Parquet</a></li><li class="chapter-item expanded "><a href="io/ipc_read.html"><strong aria-hidden="true">9.5.</strong> Read Arrow</a></li><li class="chapter-item expanded "><a href="io/ipc_stream_read.html"><strong aria-hidden="true">9.6.</strong> Read Arrow stream</a></li><li class="chapter-item expanded "><a href="io/ipc_write.html"><strong aria-hidden="true">9.7.</strong> Write Arrow</a></li></ol></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="index.html"><strong aria-hidden="true">1.</strong> Arrow2</a></li><li class="chapter-item expanded "><a href="arrow.html"><strong aria-hidden="true">2.</strong> The arrow format</a></li><li class="chapter-item expanded "><a href="low_level.html" class="active"><strong aria-hidden="true">3.</strong> Low-level API</a></li><li class="chapter-item expanded "><a href="high_level.html"><strong aria-hidden="true">4.</strong> High-level API</a></li><li class="chapter-item expanded "><a href="compute.html"><strong aria-hidden="true">5.</strong> Compute</a></li><li class="chapter-item expanded "><a href="metadata.html"><strong aria-hidden="true">6.</strong> Metadata</a></li><li class="chapter-item expanded "><a href="ffi.html"><strong aria-hidden="true">7.</strong> Foreign interfaces</a></li><li class="chapter-item expanded "><a href="extension.html"><strong aria-hidden="true">8.</strong> Extension</a></li><li class="chapter-item expanded "><a href="io/index.html"><strong aria-hidden="true">9.</strong> IO</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="io/csv_reader.html"><strong aria-hidden="true">9.1.</strong> Read CSV</a></li><li class="chapter-item expanded "><a href="io/csv_write.html"><strong aria-hidden="true">9.2.</strong> Write CSV</a></li><li class="chapter-item expanded "><a href="io/parquet_read.html"><strong aria-hidden="true">9.3.</strong> Read Parquet</a></li><li class="chapter-item expanded "><a href="io/parquet_write.html"><strong aria-hidden="true">9.4.</strong> Write Parquet</a></li><li class="chapter-item expanded "><a href="io/ipc_read.html"><strong aria-hidden="true">9.5.</strong> Read Arrow</a></li><li class="chapter-item expanded "><a href="io/ipc_stream_read.html"><strong aria-hidden="true">9.6.</strong> Read Arrow stream</a></li><li class="chapter-item expanded "><a href="io/ipc_write.html"><strong aria-hidden="true">9.7.</strong> Write Arrow</a></li><li class="chapter-item expanded "><a href="io/avro_read.html"><strong aria-hidden="true">9.8.</strong> Read Avro</a></li><li class="chapter-item expanded "><a href="io/avro_write.html"><strong aria-hidden="true">9.9.</strong> Write Avro</a></li><li class="chapter-item expanded "><a href="io/json_read.html"><strong aria-hidden="true">9.10.</strong> Read JSON</a></li><li class="chapter-item expanded "><a href="io/json_write.html"><strong aria-hidden="true">9.11.</strong> Write JSON</a></li><li class="chapter-item expanded "><a href="io/odbc.html"><strong aria-hidden="true">9.12.</strong> Read and Write ODBC</a></li></ol></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -139,7 +139,7 @@
 <p>The most important design aspect of this crate is that contiguous regions are shared via an
 <code>Arc</code>. In this context, the operation of slicing a memory region is <code>O(1)</code> because it
 corresponds to changing an offset and length. The tradeoff is that once under
-an <code>Arc</code>, memory regions are immutable.</p>
+an <code>Arc</code>, memory regions are immutable. See note below on how to overcome this.</p>
 <p>The second most important aspect is that Arrow has two main types of data buffers: bitmaps,
 whose offsets are measured in bits, and byte types (such as <code>i32</code>), whose offsets are
 measured in bytes. With this in mind, this crate has 2 main types of containers of
@@ -152,42 +152,22 @@ contiguous memory regions:</p>
 <p>Due to their intrinsic immutability, each container has a corresponding mutable
 (and non-shareable) variant:</p>
 <ul>
-<li><code>MutableBuffer&lt;T&gt;</code></li>
+<li><code>Vec&lt;T&gt;</code></li>
 <li><code>MutableBitmap</code></li>
 </ul>
 <p>Let's see how these structures are used.</p>
 <p>Create a new <code>Buffer&lt;u32&gt;</code>:</p>
 <pre><pre class="playground"><code class="language-rust"><span class="boring">use arrow2::buffer::Buffer;
 </span><span class="boring">fn main() {
-</span>let x = Buffer::from(&amp;[1u32, 2, 3]);
+</span>let x = vec![1u32, 2, 3];
+let x: Buffer&lt;u32&gt; = x.into();
 assert_eq!(x.as_slice(), &amp;[1u32, 2, 3]);
 
-let x = x.slice(1, 2);
+let x = x.slice(1, 2); // O(1)
 assert_eq!(x.as_slice(), &amp;[2, 3]);
 <span class="boring">}
 </span></code></pre></pre>
-<p>Using a <code>MutableBuffer&lt;i64&gt;</code>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">use arrow2::buffer::MutableBuffer;
-</span><span class="boring">fn main() {
-</span>let mut x: MutableBuffer&lt;i64&gt; = (0..3).collect();
-x[1] = 5;
-x.push(10);
-assert_eq!(x.as_slice(), &amp;[0, 5, 2, 10])
-<span class="boring">}
-</span></code></pre></pre>
-<p>The following demonstrates how to efficiently
-perform an operation from an iterator of
-<a href="https://doc.rust-lang.org/std/iter/trait.TrustedLen.html">TrustedLen</a>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">use arrow2::buffer::MutableBuffer;
-</span><span class="boring">fn main() {
-</span>let x = (0..1000).collect::&lt;Vec&lt;_&gt;&gt;();
-let y = MutableBuffer::from_trusted_len_iter(x.iter().map(|x| x * 2));
-assert_eq!(y[50], 100);
-<span class="boring">}
-</span></code></pre></pre>
-<p>Using <code>from_trusted_len_iter</code> often causes the compiler to auto-vectorize.</p>
-<p>In this context, <code>MutableBuffer</code> has an almost identical API to Rust's <code>Vec</code>.
-However, contrarily to <code>Vec</code>, <code>Buffer</code> and <code>MutableBuffer</code> only supports
+<p>Contrarily to <code>Vec</code>, <code>Buffer</code> (and all structs in this crate) only supports
 the following physical types:</p>
 <ul>
 <li><code>i8-i128</code></li>
@@ -201,7 +181,8 @@ types supported by arrow are built on top of these types, which enables Arrow to
 interoperable in-memory format.</p>
 <h2 id="bitmaps"><a class="header" href="#bitmaps">Bitmaps</a></h2>
 <p>Arrow's in-memory arrangement of boolean values is different from <code>Vec&lt;bool&gt;</code>. Specifically,
-arrow uses individual bits to represent a boolean, as opposed to the usual byte that <code>bool</code> holds.
+arrow uses individual bits to represent a boolean, as opposed to the usual byte
+that <code>bool</code> holds.
 Besides the 8x compression, this makes the validity particularly useful for 
 <a href="https://en.wikipedia.org/wiki/AVX-512">AVX512</a> masks.
 One tradeoff is that an arrows' bitmap is not represented as a Rust slice, as Rust slices use
@@ -227,6 +208,10 @@ x.set(1, true);
 assert_eq!(x.get(1), true);
 <span class="boring">}
 </span></code></pre></pre>
+<h2 id="copy-on-write-cow-semantics"><a class="header" href="#copy-on-write-cow-semantics">Copy on write (COW) semantics</a></h2>
+<p>Both <code>Buffer</code> and <code>Bitmap</code> support copy on write semantics via <code>into_mut</code>, that may convert
+them to a <code>Vec</code> or <code>MutableBitmap</code> respectively.</p>
+<p>This allows re-using them to e.g. perform multiple operations without allocations.</p>
 
                     </main>
 
